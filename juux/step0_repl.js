@@ -22,6 +22,7 @@ process.stdout.write(PROMPT);
 process.stdin.on('readable', function() {
   var chunk = process.stdin.read();
     if (chunk !== null) {
+        // process.stdout.write(chunk);
         process.stdout.write(rep(chunk));
         process.stdout.write(PROMPT);
   }
