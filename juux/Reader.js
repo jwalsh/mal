@@ -66,9 +66,9 @@ var read_atom = function(reader) {
 };
 
 var Symbol = function(value) {
-    this.value = value;
+    this.name = value;
     this.type = 'Symbol';
-    return this.value;
+    return this.name;
 };
 
 var Reader = function(tokens) {
@@ -87,10 +87,22 @@ var Reader = function(tokens) {
 
 };
 
+var pr_str = function(ast) {
+    console.log(ast);
+    // ast.map(function(e, i, c) {
+    //     switch(typeof e) {
+    //     case 'array': return a.join(' ');
+    //     default: return e;
+    //     };
+    // });
+};
+
 exports.read_str = read_str;
 
 var tests = ['1', '(+ 1 2)', '(+ 2 (+ 2 (- 4 1)))'];
 tests.map(function(e, i, c) {
     console.log('-------------------------------');
-    console.log(e, ':\n', JSON.stringify(read_str(e)));
+    console.log(e, ':\n',
+                JSON.stringify(read_str(e)),
+                pr_str(read_str(e)));
 });
