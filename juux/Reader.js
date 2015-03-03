@@ -55,9 +55,20 @@ var read_list = function(reader) {
 };
 
 var read_atom = function(reader) {
+    var number;
     var atom = reader.next();
     console.log('read_atom', atom);
-    return atom;
+    if (number = parseInt(atom, 10)) {
+        return number;
+    } else {
+        return new Symbol(atom);
+    }
+};
+
+var Symbol = function(value) {
+    this.value = value;
+    this.type = 'Symbol';
+    return this.value;
 };
 
 var Reader = function(tokens) {
@@ -74,9 +85,6 @@ var Reader = function(tokens) {
         return this.tokens[this.position];
     };
 
-};
-
-Reader.prototype = {
 };
 
 exports.read_str = read_str;
