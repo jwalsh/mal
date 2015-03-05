@@ -57,9 +57,13 @@ var read_list = function(reader) {
 var read_atom = function(reader) {
     var number;
     var atom = reader.next();
-    console.log('read_atom', atom);
-    if (number = parseInt(atom, 10)) {
-        return number;
+    console.log('read_atom', typeof atom, atom);
+    if (/^\d+$/.test(atom)) {
+        return parseInt(atom, 10);
+    } else if (atom === "true") {
+        return true;
+    } else if (atom === "false") {
+        return false;
     } else {
         return new Symbol(atom);
     }
@@ -99,7 +103,7 @@ var pr_str = function(ast) {
 
 exports.read_str = read_str;
 
-var tests = ['1', '(+ 1 2)', '(+ 2 (+ 2 (- 4 1)))'];
+var tests = ['1', '(+ 1 2)', '(+ 2 (+ 2 (- 4 1)))', '(if (true) 1 0)'];
 tests.map(function(e, i, c) {
     console.log('-------------------------------');
     console.log(e, ':\n',
