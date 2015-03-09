@@ -81,6 +81,7 @@ scala_STEP_TO_PROG =   scala/$($(1)).scala
 vb_STEP_TO_PROG =      vb/$($(1)).exe
 juux_STEP_TO_PROG =    juux/$($(1)).js
 puux_STEP_TO_PROG =    puux/$($(1)).py
+euux_STEP_TO_PROG =    euux/$($(1)).el
 
 # Needed some argument munging
 COMMA = ,
@@ -116,6 +117,7 @@ scala_RUNSTEP =   sbt 'run-main $($(1))$(if $(3), $(3),)'
 vb_RUNSTEP =      mono ../$(2) --raw $(3)
 juux_RUNSTEP =    node ../$(2) $(3)
 puux_RUNSTEP =    python ../$(2) $(3)
+euux_RUNSTEP =    emacs --script ../$(2) $(3)
 
 # Extra options to pass to runtest.py
 cs_TEST_OPTS =  --redirect
