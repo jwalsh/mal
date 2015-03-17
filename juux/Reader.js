@@ -40,7 +40,6 @@ var read_list = function(reader) {
     console.warn('Expected: list start "("');
   }
   while ((token = reader.peek()) !== ')') {
-    console.log('parsed:', token);
     result.push(read_form(reader));
   }
   reader.next();

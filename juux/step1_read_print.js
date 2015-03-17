@@ -1,11 +1,11 @@
 var read_str = require('./Reader').read_str;
 
 var READ = function(s1, s2) {
-    return s1;
+    return read_str(s1);
 };
 
-var EVAL = function(s1, s2) {
-    return s1;
+var EVAL = function(ast, env) {
+    return ast;
 };
 
 var PRINT = function(s1, s2) {
