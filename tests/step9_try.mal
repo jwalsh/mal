@@ -22,7 +22,7 @@
 ;=>7
 
 ;;; Test that throw is a function:
-(try* (map throw [7]) (catch* exc exc))
+(try* (map throw (list 7)) (catch* exc exc))
 ;=>7
 
 
@@ -60,7 +60,6 @@
 ; 1 2 "3" ()
 (apply prn 1 2 (list "3" (list)))
 ; 1 2 "3" ()
-;=>nil
 
 ;; Testing apply function with user functions
 (apply (fn* (a b) (+ a b)) (list 2 3))
@@ -120,6 +119,18 @@
 ;=>false
 (sequential? "abc")
 ;=>false
+
+;; Testing apply function with core functions and arguments in vector
+(apply + 4 [5])
+;=>9
+(apply prn 1 2 ["3" 4])
+; 1 2 "3" 4
+;=>nil
+;; Testing apply function with user functions and arguments in vector
+(apply (fn* (a b) (+ a b)) [2 3])
+;=>5
+(apply (fn* (a b) (+ a b)) 4 [5])
+;=>9
 
 
 ;; Testing map function with vectors
@@ -250,4 +261,14 @@
 ;=>true
 
 
+;; ------- Optional Functionality --------------
+;; ------- (Not needed for self-hosting) -------
+;>>> soft=True
 
+;; Testing equality of hash-maps
+(= {:a 11 :b 22} (hash-map :b 22 :a 11))
+;=>true
+(= {:a 11 :b 22} (hash-map :a 11))
+;=>false
+(= {:a 11 :b 22} (list :a 11 :b 22))
+;=>false
