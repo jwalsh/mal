@@ -33,7 +33,7 @@ static StaticList<malBuiltIn*> handlers;
     static StaticList<malBuiltIn*>::Node HRECNAME(uniq) \
         (handlers, new malBuiltIn(symbol, FUNCNAME(uniq))); \
     malValuePtr FUNCNAME(uniq)(const String& name, \
-        malValueIter argsBegin, malValueIter argsEnd, malEnvPtr env)
+        malValueIter argsBegin, malValueIter argsEnd)
 
 #define BUILTIN(symbol)  BUILTIN_DEF(__LINE__, symbol)
 
@@ -65,6 +65,7 @@ BUILTIN_ISA("keyword?",     malKeyword);
 BUILTIN_ISA("list?",        malList);
 BUILTIN_ISA("map?",         malHash);
 BUILTIN_ISA("sequential?",  malSequence);
+BUILTIN_ISA("string?",      malString);
 BUILTIN_ISA("symbol?",      malSymbol);
 BUILTIN_ISA("vector?",      malVector);
 
@@ -121,7 +122,7 @@ BUILTIN("apply")
         args.push_back(lastArg->item(i));
     }
 
-    return APPLY(op, args.begin(), args.end(), env->getRoot());
+    return APPLY(op, args.begin(), args.end());
 }
 
 BUILTIN("assoc")
@@ -227,12 +228,15 @@ BUILTIN("empty?")
 BUILTIN("eval")
 {
     CHECK_ARGS_IS(1);
-    return EVAL(*argsBegin, env->getRoot());
+    return EVAL(*argsBegin, NULL);
 }
 
 BUILTIN("first")
 {
     CHECK_ARGS_IS(1);
+    if (*argsBegin == mal::nilValue()) {
+        return mal::nilValue();
+    }
     ARG(malSequence, seq);
     return seq->first();
 }
@@ -329,9 +333,39 @@ BUILTIN("reset!")
 BUILTIN("rest")
 {
     CHECK_ARGS_IS(1);
+    if (*argsBegin == mal::nilValue()) {
+        return mal::list(new malValueVec(0));
+    }
     ARG(malSequence, seq);
     return seq->rest();
 }
+
+BUILTIN("seq")
+{
+    CHECK_ARGS_IS(1);
+    malValuePtr arg = *argsBegin++;
+    if (arg == mal::nilValue()) {
+        return mal::nilValue();
+    }
+    if (const malSequence* seq = DYNAMIC_CAST(malSequence, arg)) {
+        return seq->isEmpty() ? mal::nilValue()
+                              : mal::list(seq->begin(), seq->end());
+    }
+    if (const malString* strVal = DYNAMIC_CAST(malString, arg)) {
+        const String str = strVal->value();
+        int length = str.length();
+        if (length == 0)
+            return mal::nilValue();
+
+        malValueVec* items = new malValueVec(length);
+        for (int i = 0; i < length; i++) {
+            (*items)[i] = mal::string(str.substr(i, 1));
+        }
+        return mal::list(items);
+    }
+    MAL_FAIL("%s is not a string or sequence", arg->print(true).c_str());
+}
+
 
 BUILTIN("slurp")
 {
@@ -355,6 +389,21 @@ BUILTIN("slurp")
 BUILTIN("str")
 {
     return mal::string(printValues(argsBegin, argsEnd, "", false));
+}
+
+BUILTIN("swap!")
+{
+    CHECK_ARGS_AT_LEAST(2);
+    ARG(malAtom, atom);
+
+    malValuePtr op = *argsBegin++; // this gets checked in APPLY
+
+    malValueVec args(1 + argsEnd - argsBegin);
+    args[0] = atom->deref();
+    std::copy(argsBegin, argsEnd, args.begin() + 1);
+
+    malValuePtr value = APPLY(op, args.begin(), args.end());
+    return atom->reset(value);
 }
 
 BUILTIN("symbol")

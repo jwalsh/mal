@@ -52,6 +52,18 @@ parser.add_argument('--debug-file', type=str,
 parser.add_argument('--hard', action='store_true',
         help="Turn soft tests following a ';>>> soft=True' into hard failures")
 
+# Control whether deferrable and optional tests are executed
+parser.add_argument('--deferrable', dest='deferrable', action='store_true',
+        help="Enable deferrable tests that follow a ';>>> deferrable=True'")
+parser.add_argument('--no-deferrable', dest='deferrable', action='store_false',
+        help="Disable deferrable tests that follow a ';>>> deferrable=True'")
+parser.set_defaults(deferrable=True)
+parser.add_argument('--optional', dest='optional', action='store_true',
+        help="Enable optional tests that follow a ';>>> optional=True'")
+parser.add_argument('--no-optional', dest='optional', action='store_false',
+        help="Disable optional tests that follow a ';>>> optional=True'")
+parser.set_defaults(optional=True)
+
 parser.add_argument('test_file', type=argparse.FileType('r'),
         help="a test file formatted as with mal test data")
 parser.add_argument('mal_cmd', nargs="*",
@@ -142,13 +154,15 @@ class Runner():
             self.p = None
 
 class TestReader:
-    def __init__(self, test_file, print=print):
+    def __init__(self, test_file):
         self.line_num = 0
         self.data = test_file.read().split('\n')
-        self.print = print
         self.soft = False
+        self.deferrable = False
+        self.optional = False
 
     def next(self):
+        self.msg = None
         self.form = None
         self.out = ""
         self.ret = None
@@ -161,12 +175,19 @@ class TestReader:
             elif line[0:3] == ";;;":       # ignore comment
                 continue
             elif line[0:2] == ";;":        # output comment
-                log(line[3:])
-                continue
+                self.msg = line[3:]
+                return True
             elif line[0:5] == ";>>> ":     # settings/commands
                 settings = {}
                 exec(line[5:], {}, settings)
-                if 'soft' in settings: self.soft = True
+                if 'soft' in settings:
+                    self.soft = settings['soft']
+                if 'deferrable' in settings and settings['deferrable']:
+                    self.deferrable = "\nSkipping deferrable and optional tests"
+                    return True
+                if 'optional' in settings and settings['optional']:
+                    self.optional = "\nSkipping optional tests"
+                    return True
                 continue
             elif line[0:1] == ";":         # unexpected comment
                 log("Test data error at line %d:\n%s" % (self.line_num, line))
@@ -231,8 +252,23 @@ test_cnt = 0
 pass_cnt = 0
 fail_cnt = 0
 soft_fail_cnt = 0
+failures = []
 
 while t.next():
+    if args.deferrable == False and t.deferrable:
+        log(t.deferrable)
+        break
+
+    if args.optional == False and t.optional:
+        log(t.optional)
+        break
+
+    if t.msg != None:
+        log(t.msg)
+        continue
+
+    if t.form == None: continue
+
     log("TEST: %s -> [%s,%s]" % (t.form, repr(t.out), t.ret), end='')
 
     # The repeated form is to get around an occasional OS X issue
@@ -255,18 +291,30 @@ while t.next():
             if t.soft and not args.hard:
                 log(" -> SOFT FAIL (line %d):" % t.line_num)
                 soft_fail_cnt += 1
+                fail_type = "SOFT "
             else:
                 log(" -> FAIL (line %d):" % t.line_num)
                 fail_cnt += 1
+                fail_type = ""
             log("    Expected : %s" % repr(expected[0]))
             log("    Got      : %s" % repr(res))
+            failed_test = """%sFAILED TEST (line %d): %s -> [%s,%s]:
+    Expected : %s
+    Got      : %s""" % (fail_type, t.line_num, t.form, repr(t.out), t.ret, repr(expected[0]), repr(res))
+            failures.append(failed_test)
     except:
         _, exc, _ = sys.exc_info()
         log("\nException: %s" % repr(exc))
         log("Output before exception:\n%s" % r.buf)
         sys.exit(1)
 
-results = """TEST RESULTS (for %s):
+if len(failures) > 0:
+    log("\nFAILURES:")
+    for f in failures:
+        log(f)
+
+results = """
+TEST RESULTS (for %s):
   %3d: soft failing tests
   %3d: failing tests
   %3d: passing tests

@@ -10,7 +10,7 @@
 In November of 2013, Alan Dipert gave a [lightning talk at
 Clojure/conj](https://www.youtube.com/watch?v=bmHTFo2Rf2w#t=28m55s)
 about [gherkin](https://github.com/alandipert/gherkin), a Lisp
-implemented in bash. His presentation led me to ask myself the qestion
+implemented in bash. His presentation led me to ask myself the question
 of whether a Lisp could be created using the GNU Make macro language.
 As you have probably guessed, the answer to that question is yes.
 
@@ -125,10 +125,11 @@ Here are a few guidelines for getting your implementation accepted
 into the main repository:
 
 * Your implementation needs to be complete enough to self-host. This
-  means that all the tests should pass in both direct and self-hosted modes:
+  means that all the mandatory tests should pass in both direct and
+  self-hosted modes:
   ```bash
-  make test^[IMPL_NAME]
-  make MAL_IMPL=[IMPL_NAME] test^mal
+  make "test^[IMPL_NAME]"
+  make MAL_IMPL=[IMPL_NAME] "test^mal"
   ```
   You do not need to pass the final optional tests for stepA that are
   marked as optional and not needed for self-hosting.
@@ -170,4 +171,10 @@ into the main repository:
   functionality for your implementation, however, it is a nice
   convenience for users of your implementation and I personally find
   it saves a lot of time when I am creating a new implementation to
-  have line edit support early on in the REPL.
+  have line edit support early in the process.
+
+---
+
+**Good questions that either don't have answer or need more detail**
+
+### Why do some mal forms end in "\*" or "!" (swap!, def!, let\*, etc)?

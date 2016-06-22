@@ -3,8 +3,9 @@ local types = require('types')
 local reader = require('reader')
 local printer = require('printer')
 local readline = require('readline')
+local socket = require('socket')
 
-local Nil, List, _pr_str = types.Nil, types.List, printer._pr_str
+local Nil, List, HashMap, _pr_str = types.Nil, types.List, types.HashMap, printer._pr_str
 
 local M = {}
 
@@ -117,6 +118,14 @@ function first(a)
     end
 end
 
+function rest(a)
+    if a == Nil then
+        return List:new()
+    else
+        return List:new(a:slice(2))
+    end
+end
+
 function apply(f, ...)
     if types._malfunc_Q(f) then
         f = f.fn
@@ -173,6 +182,57 @@ local function conj(obj, ...)
     return new_obj
 end
 
+local function seq(obj, ...)
+    if obj == Nil or #obj == 0 then
+        return Nil
+    elseif types._list_Q(obj) then
+        return obj
+    elseif types._vector_Q(obj) then
+        return List:new(obj)
+    elseif types._string_Q(obj) then
+        local chars = {}
+        for i = 1, #obj do
+            chars[#chars+1] = string.sub(obj,i,i)
+        end
+        return List:new(chars)
+    end
+    return Nil
+end
+
+local function lua_to_mal(a)
+  if a == nil then
+    return Nil
+  elseif type(a) == "boolean" or type(a) == "number" or type(a) == "string" then
+    return a
+  elseif type(a) == "table" then
+    local first_key, _ = next(a)
+    if first_key == nil then
+      return List:new({})
+    elseif type(first_key) == "number" then
+      local list = {}
+      for i, v in ipairs(a) do
+        list[i] = lua_to_mal(v)
+      end
+      return List:new(list)
+    else
+      local hashmap = {}
+      for k, v in pairs(a) do
+        hashmap[lua_to_mal(k)] = lua_to_mal(v)
+      end
+      return HashMap:new(hashmap)
+    end
+  end
+  return tostring(a)
+end
+
+local function lua_eval(str)
+    local f, err = loadstring("return "..str)
+    if err then
+        types.throw("lua-eval: can't load code: "..err)
+    end
+    return lua_to_mal(f())
+end
+
 M.ns = {
     ['='] =  types._equal_Q,
     throw = types.throw,
@@ -182,6 +242,7 @@ M.ns = {
     ['false?'] =  function(a) return a==false end,
     symbol = function(a) return types.Symbol:new(a) end,
     ['symbol?'] = function(a) return types._symbol_Q(a) end,
+    ['string?'] = function(a) return types._string_Q(a) and "\177" ~= string.sub(a,1,1) end,
     keyword = function(a) return "\177"..a end,
     ['keyword?'] = function(a) return types._keyword_Q(a) end,
 
@@ -201,8 +262,7 @@ M.ns = {
     ['-'] =  function(a,b) return a-b end,
     ['*'] =  function(a,b) return a*b end,
     ['/'] =  function(a,b) return math.floor(a/b) end,
-    -- TODO: get actual milliseconds
-    ['time-ms'] = function() return os.time() * 1000 end,
+    ['time-ms'] = function() return math.floor(socket.gettime() * 1000) end,
 
     list = function(...) return List:new(arg) end,
     ['list?'] = function(a) return types._list_Q(a) end,
@@ -222,12 +282,13 @@ M.ns = {
     concat = concat,
     nth = nth,
     first = first,
-    rest = function(a) return List:new(a:slice(2)) end,
+    rest = rest,
     ['empty?'] = function(a) return a==Nil or #a == 0 end,
     count =  function(a) return #a end,
     apply = apply,
     map = map,
     conj = conj,
+    seq = seq,
 
     meta = meta,
     ['with-meta'] = with_meta,
@@ -236,6 +297,8 @@ M.ns = {
     deref = function(a) return a.val end,
     ['reset!'] = function(a,b) a.val = b; return b end,
     ['swap!'] = swap_BANG,
+
+    ['lua-eval'] = lua_eval,
 }
 
 return M

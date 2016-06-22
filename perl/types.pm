@@ -6,7 +6,7 @@ use feature qw(switch);
 use Exporter 'import';
 our @EXPORT_OK = qw(_sequential_Q _equal_Q _clone
                     $nil $true $false _nil_Q _true_Q _false_Q
-                    _symbol _symbol_Q _keyword _keyword_Q _list_Q _vector_Q
+                    _symbol _symbol_Q _string_Q _keyword _keyword_Q _list_Q _vector_Q
                     _hash_map _hash_map_Q _assoc_BANG _dissoc_BANG _atom_Q);
 
 use Data::Dumper;
@@ -28,7 +28,7 @@ sub _equal_Q {
             return $$a eq $$b;
         }
         when (/^List/ || /^Vector/) {
-            if (! scalar(@{$a->{val}}) == scalar(@{$b->{val}})) {
+            if (! (scalar(@{$a->{val}}) == scalar(@{$b->{val}}))) {
                 return 0;
             }
             for (my $i=0; $i<scalar(@{$a->{val}}); $i++) {
@@ -39,7 +39,15 @@ sub _equal_Q {
             return 1;
         }
         when (/^HashMap/) {
-            die "TODO: Hash map comparison\n";
+            if (! (scalar(keys %{ $a->{val} }) == scalar(keys %{ $b->{val} }))) {
+                return 0;
+            }
+            foreach my $k (keys %{ $a->{val} }) {
+                if (!_equal_Q($a->{val}->{$k}, $b->{val}->{$k})) {
+                    return 0;
+                }
+            }
+            return 1;
         }
         default {
             return $$a eq $$b;
@@ -102,6 +110,9 @@ sub _false_Q { return $_[0] eq $false }
     sub new  { my $class = shift; bless \do { my $x=$_[0] }, $class }
 }
 sub _symbol_Q { (ref $_[0]) =~ /^Symbol/ }
+
+
+sub _string_Q { ((ref $_[0]) =~ /^String/) && ${$_[0]} !~ /^\x{029e}/; }
 
 
 sub _keyword { return String->new(("\x{029e}".$_[0])); }

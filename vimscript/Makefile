@@ -2,16 +2,30 @@ SOURCES_BASE = readline.vim types.vim reader.vim printer.vim
 SOURCES_LISP = env.vim core.vim stepA_mal.vim
 SOURCES = $(SOURCES_BASE) $(SOURCES_LISP)
 
-all: libvimreadline.so
+all: libvimextras.so
 
-libvimreadline.so: vimreadline.o
+dist: mal.vim mal
+
+mal.vim: $(SOURCES)
+	cat $+ | grep -v "^source " > $@
+
+mal: mal.vim
+	echo "#!/bin/sh" > $@
+	echo "\":\" ; rundir=\`dirname \$$0\`" >> $@
+	echo "\":\" ; export LD_LIBRARY_PATH=\`readlink -f \$$rundir\`" >> $@
+	echo "\":\" ; exec vim -i NONE -V1 -nNesS \"\$$0\" -- \"\$$@\" 2>/dev/null" >> $@
+	cat $< >> $@
+	chmod +x $@
+
+
+libvimextras.so: vimextras.o
 	$(CC) -g -shared -o $@ $< -lreadline
 
-vimreadline.o: vimreadline.c
+vimextras.o: vimextras.c
 	$(CC) -g -fPIC -c $< -o $@
 
 clean:
-	rm -f vimreadline.o libvimreadline.so
+	rm -f vimextras.o libvimextras.so mal.vim mal
 
 stats: $(SOURCES)
 	@wc $^

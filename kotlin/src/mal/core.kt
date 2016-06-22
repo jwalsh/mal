@@ -1,6 +1,7 @@
 package mal
 
 import java.io.File
+import java.util.*
 
 val ns = hashMapOf(
         envPair("+", { a: ISeq -> a.seq().reduce({ x, y -> x as MalInteger + y as MalInteger }) }),
@@ -48,11 +49,11 @@ val ns = hashMapOf(
 
         envPair("cons", { a: ISeq ->
             val list = a.nth(1) as? ISeq ?: throw MalException("cons requires a list as its second parameter")
-            val mutableList = list.seq().toLinkedList()
+            val mutableList = list.seq().toCollection(LinkedList<MalType>())
             mutableList.addFirst(a.nth(0))
             MalList(mutableList)
         }),
-        envPair("concat", { a: ISeq -> MalList(a.seq().flatMap({ it -> (it as ISeq).seq() }).toLinkedList()) }),
+        envPair("concat", { a: ISeq -> MalList(a.seq().flatMap({ it -> (it as ISeq).seq() }).toCollection(LinkedList<MalType>())) }),
 
         envPair("nth", { a: ISeq ->
             val list = a.nth(0) as? ISeq ?: throw MalException("nth requires a list as its first parameter")
@@ -68,8 +69,11 @@ val ns = hashMapOf(
             }
         }),
         envPair("rest", { a: ISeq ->
-            val list = a.nth(0) as? ISeq ?: throw MalException("rest requires a list parameter")
-            MalList(list.rest())
+            if (a.nth(0) == NIL) MalList()
+            else {
+                val list = a.nth(0) as? ISeq ?: throw MalException("rest requires a list parameter")
+                MalList(list.rest())
+            }
         }),
 
         envPair("throw", { a: ISeq ->
@@ -96,12 +100,15 @@ val ns = hashMapOf(
                 val params = MalList()
                 params.conj_BANG(it)
                 function.apply(params)
-            }).toLinkedList())
+            }).toCollection(LinkedList<MalType>()))
         }),
 
         envPair("nil?", { a: ISeq -> if (a.nth(0) == NIL) TRUE else FALSE }),
         envPair("true?", { a: ISeq -> if (a.nth(0) == TRUE) TRUE else FALSE }),
         envPair("false?", { a: ISeq -> if (a.nth(0) == FALSE) TRUE else FALSE }),
+        envPair("string?", { a: ISeq ->
+            if (a.nth(0) is MalString && !(a.nth(0) is MalKeyword)) TRUE else FALSE
+        }),
         envPair("symbol?", { a: ISeq -> if (a.nth(0) is MalSymbol) TRUE else FALSE }),
 
         envPair("symbol", { a: ISeq -> MalSymbol((a.nth(0) as MalString).value) }),
@@ -141,12 +148,11 @@ val ns = hashMapOf(
         }),
         envPair("keys", { a: ISeq ->
             val map = a.nth(0) as MalHashMap
-            // Another situation where kotlinc breaks if I don't add this unnecessary cast
-            MalList(map.elements.keys.map({ it -> it as MalType }).asSequence().toLinkedList())
+            MalList(map.elements.keys.toCollection(LinkedList<MalType>()))
         }),
         envPair("vals", { a: ISeq ->
             val map = a.nth(0) as MalHashMap
-            MalList(map.elements.values.asSequence().toLinkedList())
+            MalList(map.elements.values.toCollection(LinkedList<MalType>()))
         }),
         envPair("count", { a: ISeq ->
             val seq = a.nth(0) as? ISeq
@@ -160,7 +166,23 @@ val ns = hashMapOf(
             obj.with_meta(metadata)
         }),
         envPair("meta", { a: ISeq -> a.first().metadata }),
+
         envPair("conj", { a: ISeq -> (a.first() as ISeq).conj(a.rest()) }),
+        envPair("seq", { a: ISeq ->
+            val obj = a.nth(0)
+            if (obj is ISeq) {
+                if (obj.count() == 0) NIL
+                else MalList(obj.seq().toCollection(LinkedList<MalType>()))
+            } else if (obj is MalString && !(obj is MalKeyword)) {
+                if (obj.value.length == 0) NIL
+                else {
+                    var strs = obj.value.map({ c -> MalString(c.toString()) })
+                    MalList(strs.toCollection(LinkedList<MalType>()))
+                }
+            } else {
+                NIL
+            }
+        }),
 
         envPair("atom", { a: ISeq -> MalAtom(a.first()) }),
         envPair("atom?", { a: ISeq -> if (a.first() is MalAtom) TRUE else FALSE }),

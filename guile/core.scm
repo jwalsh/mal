@@ -29,7 +29,22 @@
 
 ;; Well, strange spec...
 (define (_equal? o1 o2)
-  (equal? (->list o1) (->list o2)))
+  (define (equal-lists? lst1 lst2)
+    (and (= (length lst1) (length lst2))
+         (for-all _equal? lst1 lst2)))
+  (define (equal-hash-tables? ht1 ht2)
+    (define (equal-values? k)
+      (_equal? (_get ht1 k) (_get ht2 k)))
+    (let ((keys1 (_keys ht1)))
+      (and (= (length keys1) (length (_keys ht2)))
+           (for-all equal-values? keys1))))
+  (cond
+    ((and (_sequential? o1) (_sequential? o2))
+     (equal-lists? (->list o1) (->list o2)))
+    ((and (hash-table? o1) (hash-table? o2))
+     (equal-hash-tables? o1 o2))
+    (else
+     (equal? o1 o2))))
 
 (define (pr-str . args)
   (define (pr x) (pr_str x #t))
@@ -67,15 +82,17 @@
 
 (define (_first lst)
   (define ll (->list lst))
-  (if (null? ll)
-      nil
-      (car ll)))
+  (cond
+    ((_nil? lst) nil)
+    ((null? ll) nil)
+    (else (car ll))))
 
 (define (_rest lst)
   (define ll (->list lst))
-  (if (null? ll)
-      '()
-      (cdr ll)))
+  (cond
+    ((_nil? lst) '())
+    ((null? ll) '())
+    (else (cdr ll))))
 
 (define (_map f lst) (map (callable-closure f) (->list lst)))
 
@@ -157,6 +174,14 @@
     (append (reverse args) (->list lst)))
    (else (throw 'mal-error (format #f "conj: '~a' is not list/vector" lst)))))
 
+(define (_seq obj)
+  (cond
+   ((_nil? obj) nil)
+   ((_string? obj)
+    (if (string-null? obj) nil (map string (string->list obj))))
+   ((_empty? obj) nil)
+   (else (->list obj))))
+
 (define (__readline prompt)
   (let ((str (_readline prompt)))
     (if (eof-object? str)
@@ -212,6 +237,7 @@
     (false?      ,_false?)
     (symbol?     ,symbol?)
     (symbol      ,->symbol)
+    (string?     ,_string?)
     (keyword     ,->keyword)
     (keyword?    ,_keyword?)
     (vector?     ,vector?)
@@ -234,6 +260,7 @@
     (reset!      ,_reset!)
     (swap!       ,_swap!)
     (conj        ,_conj)
+    (seq         ,_seq)
     (time-ms     ,time-ms)))
 
 ;; Well, we have to rename it to this strange name...

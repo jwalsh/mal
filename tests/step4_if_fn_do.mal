@@ -110,11 +110,15 @@
 ;=>false
 (= "" "")
 ;=>true
+(= "abc" "abc")
+;=>true
 (= "abc" "")
 ;=>false
 (= "" "abc")
 ;=>false
 (= "abc" "def")
+;=>false
+(= "abc" "ABC")
 ;=>false
 
 (= (list) (list))
@@ -161,32 +165,6 @@
 (plus7 8)
 ;=>15
 
-
-;; Testing variable length arguments
-
-( (fn* (& more) (count more)) 1 2 3)
-;=>3
-( (fn* (& more) (count more)) 1)
-;=>1
-( (fn* (& more) (count more)) )
-;=>0
-( (fn* (a & more) (count more)) 1 2 3)
-;=>2
-( (fn* (a & more) (count more)) 1)
-;=>0
-
-
-;; Testing language defined not function
-(not false)
-;=>true
-(not true)
-;=>false
-(not "a")
-;=>false
-(not 0)
-;=>false
-
-
 ;; Testing do form
 (do (prn "prn output1"))
 ; "prn output1"
@@ -226,6 +204,42 @@ a
 ;;; Too slow for bash, erlang, make and miniMAL
 ;;;(fib 10)
 ;;;;=>89
+
+
+;>>> deferrable=True
+;;
+;; -------- Deferrable Functionality --------
+
+;; Testing variable length arguments
+
+( (fn* (& more) (count more)) 1 2 3)
+;=>3
+( (fn* (& more) (list? more)) 1 2 3)
+;=>true
+( (fn* (& more) (count more)) 1)
+;=>1
+( (fn* (& more) (count more)) )
+;=>0
+( (fn* (& more) (list? more)) )
+;=>true
+( (fn* (a & more) (count more)) 1 2 3)
+;=>2
+( (fn* (a & more) (count more)) 1)
+;=>0
+( (fn* (a & more) (list? more)) 1)
+;=>true
+
+
+;; Testing language defined not function
+(not false)
+;=>true
+(not true)
+;=>false
+(not "a")
+;=>false
+(not 0)
+;=>false
+
 
 ;; -----------------------------------------------------
 
@@ -275,6 +289,8 @@ a
 (pr-str "abc\\def\\ghi")
 ;=>"\"abc\\\\def\\\\ghi\""
 
+(pr-str (list))
+;=>"()"
 
 ;; Testing str
 
@@ -302,10 +318,11 @@ a
 (str "abc\\def\\ghi")
 ;=>"abc\\def\\ghi"
 
-;;; TODO: get this working properly
-;;;(str (list 1 2 "abc" "\"") "def")
-;;;;=>"(1 2 \"abc\" \"\\\"\")def"
+(str (list 1 2 "abc" "\"") "def")
+;=>"(1 2 abc \")def"
 
+(str (list))
+;=>"()"
 
 ;; Testing prn
 (prn)
@@ -374,6 +391,7 @@ nil
 ; (1 2 abc ") def
 ;=>nil
 
+;>>> optional=True
 ;;
 ;; -------- Optional Functionality --------
 
@@ -389,6 +407,20 @@ nil
 (if [] 7 8)
 ;=>7
 
+;; Testing vector printing
+(pr-str [1 2 "abc" "\""] "def")
+;=>"[1 2 \"abc\" \"\\\"\"] \"def\""
+
+(pr-str [])
+;=>"[]"
+
+(str [1 2 "abc" "\""] "def")
+;=>"[1 2 abc \"]def"
+
+(str [])
+;=>"[]"
+
+
 ;; Testing vector functions
 (count [1 2 3])
 ;=>3
@@ -401,6 +433,8 @@ nil
 
 ;; Testing vector equality
 (= [] (list))
+;=>true
+(= [7 8] [7 8])
 ;=>true
 (= (list 1 2) [1 2])
 ;=>true
@@ -422,3 +456,9 @@ nil
 ;=>4
 ( (fn* [f x] (f x)) (fn* [a] (+ 1 a)) 7)
 ;=>8
+
+;; Nested vector/list equality
+(= [(list)] (list []))
+;=>true
+(= [1 2 (list 3 4 [5 6])] (list 1 2 [3 4 (list 5 6)]))
+;=>true

@@ -8,7 +8,7 @@
 
 main([File|Args]) ->
     Env = init(),
-    env:set(Env, {symbol, "*ARGV*"}, {list, Args, nil}),
+    env:set(Env, {symbol, "*ARGV*"}, {list, [{string,Arg} || Arg <- Args], nil}),
     rep("(load-file \"" ++ File ++ "\")", Env);
 main([]) ->
     Env = init(),
@@ -28,15 +28,16 @@ loop(Env) ->
         eof -> io:format("~n");
         {error, Reason} -> exit(Reason);
         Line ->
-            rep(string:strip(Line, both, $\n), Env),
+            print(rep(string:strip(Line, both, $\n), Env)),
             loop(Env)
     end.
 
 rep(Input, Env) ->
     try eval(read(Input), Env) of
-        Result -> print(Result)
+        none -> none;
+        Result -> printer:pr_str(Result, true)
     catch
-        error:Reason -> io:format("error: ~s~n", [Reason])
+        error:Reason -> printer:pr_str({error, Reason}, true)
     end.
 
 read(Input) ->
@@ -50,7 +51,7 @@ eval(Value, Env) ->
         {list, _L1, _M1} ->
             case macroexpand(Value, Env) of
                 {list, _L2, _M2} = List -> eval_list(List, Env);
-                AST -> AST
+                AST -> eval_ast(AST, Env)
             end;
         _ -> eval_ast(Value, Env)
     end.
@@ -168,7 +169,7 @@ print(none) ->
     % if nothing meaningful was entered, print nothing at all
     ok;
 print(Value) ->
-    io:format("~s~n", [printer:pr_str(Value, true)]).
+    io:format("~s~n", [Value]).
 
 let_star(Env, Bindings) ->
     Bind = fun({Name, Expr}) ->

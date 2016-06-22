@@ -2,8 +2,8 @@
 ! See http://factorcode.org/license.txt for BSD license.
 USING: accessors arrays assocs combinators
 combinators.short-circuit command-line continuations fry
-grouping hashtables io kernel lists locals mal.core mal.env
-mal.printer mal.reader mal.types math namespaces quotations
+grouping hashtables io kernel lists locals lib.core lib.env
+lib.printer lib.reader lib.types math namespaces quotations
 readline sequences splitting ;
 IN: step9_try
 
@@ -94,7 +94,7 @@ M: callable apply call( x -- y ) f ;
 : READ ( str -- maltype ) read-str ;
 
 : EVAL ( maltype env -- maltype )
-    over array? [
+    over { [ array? ] [ empty? not ] } 1&& [
         [ macro-expand ] keep over array? [
             over first dup malsymbol? [ name>> ] when {
                 { "def!" [ [ rest first2 ] dip eval-def! f ] }
@@ -110,7 +110,7 @@ M: callable apply call( x -- y ) f ;
                 [ drop '[ _ EVAL ] map unclip apply ]
             } case [ EVAL ] when*
         ] [
-            drop
+            eval-ast
         ] if
     ] [
         eval-ast
@@ -130,9 +130,15 @@ M: callable apply call( x -- y ) f ;
         ] keep
     ] loop ;
 
+: main ( -- )
+    command-line get
+    [ REPL ]
+    [ first "(load-file \"" "\")" surround REP drop ]
+    if-empty ;
+
 f ns clone
 [ first repl-env get EVAL ] "eval" pick set-at
-command-line get "*ARGV*" pick set-at
+command-line get dup empty? [ rest ] unless "*ARGV*" pick set-at
 <malenv> repl-env set-global
 
 "
@@ -142,4 +148,4 @@ command-line get "*ARGV*" pick set-at
 (defmacro! or (fn* (& xs) (if (empty? xs) nil (if (= 1 (count xs)) (first xs) `(let* (or_FIXME ~(first xs)) (if or_FIXME or_FIXME (or ~@(rest xs))))))))
 " string-lines harvest [ REP drop ] each
 
-MAIN: REPL
+MAIN: main

@@ -8,22 +8,13 @@
 ; "exc is:" "'abc' not found"
 ;=>nil
 
-;;;TODO: fix so long lines don't trigger ANSI escape codes ;;;(try*
-;;;(try* (throw ["data" "foo"]) (catch* exc (do (prn "exc is:" exc) 7))) ;;;;
-;;;; "exc is:" ["data" "foo"] ;;;;=>7
-;;;;=>7
-
-(try* (throw (list 1 2 3)) (catch* exc (do (prn "err:" exc) 7)))
-; "err:" (1 2 3)
-;=>7
-
 (try* (throw "my exception") (catch* exc (do (prn "exc:" exc) 7)))
 ; "exc:" "my exception"
 ;=>7
 
 ;;; Test that throw is a function:
-(try* (map throw (list 7)) (catch* exc exc))
-;=>7
+(try* (map throw (list "my err")) (catch* exc exc))
+;=>"my err"
 
 
 ;;
@@ -58,8 +49,10 @@
 ;=>9
 (apply prn (list 1 2 "3" (list)))
 ; 1 2 "3" ()
+;=>nil
 (apply prn 1 2 (list "3" (list)))
 ; 1 2 "3" ()
+;=>nil
 
 ;; Testing apply function with user functions
 (apply (fn* (a b) (+ a b)) (list 2 3))
@@ -74,11 +67,12 @@
 ;=>6
 (map double nums) 
 ;=>(2 4 6)
-(map (fn* (x) (symbol? x)) (list 1 (symbol "two") "three"))
+(map (fn* (x) (symbol? x)) (list 1 (quote two) "three"))
 ;=>(false true false)
 
+;>>> deferrable=True
 ;;
-;; ------- Optional Functionality ----------
+;; ------- Deferrable Functionality ----------
 ;; ------- (Needed for self-hosting) -------
 
 ;; Testing symbol and keyword functions
@@ -95,6 +89,8 @@
 (keyword? 'abc)
 ;=>false
 (keyword? "abc")
+;=>false
+(keyword? "")
 ;=>false
 (keyword? (keyword "abc"))
 ;=>true
@@ -260,15 +256,82 @@
 (keyword? (nth (vals {"a" :abc "b" :def}) 0))
 ;=>true
 
-
-;; ------- Optional Functionality --------------
-;; ------- (Not needed for self-hosting) -------
-;>>> soft=True
+;; Testing nil as hash-map values
+(contains? {:abc nil} :abc)
+;=>true
+(assoc {} :bcd nil)
+;=>{:bcd nil}
+(dissoc {:cde nil :fgh 456} :cde)
+;=>{:fgh 456}
 
 ;; Testing equality of hash-maps
+(= {} {})
+;=>true
 (= {:a 11 :b 22} (hash-map :b 22 :a 11))
 ;=>true
+(= {:a 11 :b [22 33]} (hash-map :b [22 33] :a 11))
+;=>true
+(= {:a 11 :b {:c 33}} (hash-map :b {:c 33} :a 11))
+;=>true
+(= {:a 11 :b 22} (hash-map :b 23 :a 11))
+;=>false
 (= {:a 11 :b 22} (hash-map :a 11))
 ;=>false
+(= {:a [11 22]} {:a (list 11 22)})
+;=>true
 (= {:a 11 :b 22} (list :a 11 :b 22))
 ;=>false
+(= {} [])
+;=>false
+(= [] {})
+;=>false
+
+;;
+;; Additional str and pr-str tests
+
+(str "A" {:abc "val"} "Z")
+;=>"A{:abc val}Z"
+
+(str true "." false "." nil "." :keyw "." 'symb)
+;=>"true.false.nil.:keyw.symb"
+
+(pr-str "A" {:abc "val"} "Z")
+;=>"\"A\" {:abc \"val\"} \"Z\""
+
+(pr-str true "." false "." nil "." :keyw "." 'symb)
+;=>"true \".\" false \".\" nil \".\" :keyw \".\" symb"
+
+(def! s (str {:abc "val1" :def "val2"}))
+(or (= s "{:abc val1 :def val2}") (= s "{:def val2 :abc val1}"))
+;=>true
+
+(def! p (pr-str {:abc "val1" :def "val2"}))
+(or (= p "{:abc \"val1\" :def \"val2\"}") (= p "{:def \"val2\" :abc \"val1\"}"))
+;=>true
+
+;;
+;; Test extra function arguments as Mal List (bypassing TCO with apply)
+(apply (fn* (& more) (list? more)) [1 2 3])
+;=>true
+(apply (fn* (& more) (list? more)) [])
+;=>true
+(apply (fn* (a & more) (list? more)) [1])
+;=>true
+
+;>>> soft=True
+;>>> optional=True
+;;
+;; ------- Optional Functionality --------------
+;; ------- (Not needed for self-hosting) -------
+
+
+;;;TODO: fix so long lines don't trigger ANSI escape codes ;;;(try*
+;;;(try* (throw ["data" "foo"]) (catch* exc (do (prn "exc is:" exc) 7))) ;;;;
+;;;; "exc is:" ["data" "foo"] ;;;;=>7
+;;;;=>7
+
+;; Testing throwing non-strings
+(try* (throw (list 1 2 3)) (catch* exc (do (prn "err:" exc) 7)))
+; "err:" (1 2 3)
+;=>7
+

@@ -1,5 +1,7 @@
 package mal
 
+import java.util.*
+
 fun read(input: String?): MalType = read_str(input)
 
 fun eval(_ast: MalType, _env: Env): MalType {
@@ -8,6 +10,7 @@ fun eval(_ast: MalType, _env: Env): MalType {
 
     while (true) {
         if (ast is MalList) {
+            if (ast.count() == 0) return ast
             when ((ast.first() as? MalSymbol)?.value) {
                 "def!" -> return env.set(ast.nth(1) as MalSymbol, eval(ast.nth(2), env))
                 "let*" -> {
@@ -95,15 +98,15 @@ private fun quasiquote(ast: MalType): MalType {
     if (is_pair(first) && ((first as ISeq).first() as? MalSymbol)?.value == "splice-unquote") {
         val spliced = MalList()
         spliced.conj_BANG(MalSymbol("concat"))
-        spliced.conj_BANG((first as ISeq).nth(1))
-        spliced.conj_BANG(quasiquote(MalList(seq.seq().drop(1).toLinkedList())))
+        spliced.conj_BANG(first.nth(1))
+        spliced.conj_BANG(quasiquote(MalList(seq.seq().drop(1).toCollection(LinkedList<MalType>()))))
         return spliced
     }
 
     val consed = MalList()
     consed.conj_BANG(MalSymbol("cons"))
     consed.conj_BANG(quasiquote(ast.first()))
-    consed.conj_BANG(quasiquote(MalList(seq.seq().drop(1).toLinkedList())))
+    consed.conj_BANG(quasiquote(MalList(seq.seq().drop(1).toCollection(LinkedList<MalType>()))))
     return consed
 }
 
@@ -116,9 +119,7 @@ fun main(args: Array<String>) {
     val repl_env = Env()
     ns.forEach({ it -> repl_env.set(it.key, it.value) })
 
-    // Need to cast the strings explicitly to MalType to get this to compile.  Looks like a bug in kotlinc,
-    // and it results in a warning.
-    repl_env.set(MalSymbol("*ARGV*"), MalList(args.drop(1).map({ it -> MalString(it) as MalType }).toLinkedList()))
+    repl_env.set(MalSymbol("*ARGV*"), MalList(args.drop(1).map({ it -> MalString(it) }).toCollection(LinkedList<MalType>())))
     repl_env.set(MalSymbol("eval"), MalFunction({ a: ISeq -> eval(a.first(), repl_env) }))
 
     rep("(def! not (fn* (a) (if a false true)))", repl_env)

@@ -38,9 +38,7 @@ E._equal_Q = _equal_Q = (a,b) ->
       bkeys = (key for key of b)
       return false if akeys.length != bkeys.length
       for akey,i in akeys
-        bkey = bkeys[i]
-        return false if akey != bkey
-        return false if !_equal_Q(a[akey], b[bkey])
+        return false if !_equal_Q(a[akey], b[akey])
       true
     else a == b
 
@@ -63,6 +61,7 @@ E._clone = _clone = (obj) ->
 E._nil_Q = _nil_Q = (o) -> o == null
 E._true_Q = _true_Q = (o) -> o == true
 E._false_Q = _false_Q = (o) -> o == false
+E._string_Q = _string_Q = (o) -> _obj_type(o) == 'string'
 
 # Symbols
 class Symbol

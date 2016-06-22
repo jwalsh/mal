@@ -8,7 +8,7 @@
 
 main([File|Args]) ->
     Env = init(),
-    env:set(Env, {symbol, "*ARGV*"}, {list, Args, nil}),
+    env:set(Env, {symbol, "*ARGV*"}, {list, [{string,Arg} || Arg <- Args], nil}),
     rep("(load-file \"" ++ File ++ "\")", Env);
 main([]) ->
     Env = init(),
@@ -22,7 +22,9 @@ init() ->
     eval(read("(def! not (fn* (a) (if a false true)))"), Env),
     eval(read("(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \")\")))))"), Env),
     eval(read("(defmacro! cond (fn* (& xs) (if (> (count xs) 0) (list 'if (first xs) (if (> (count xs) 1) (nth xs 1) (throw \"odd number of forms to cond\")) (cons 'cond (rest (rest xs)))))))"), Env),
-    eval(read("(defmacro! or (fn* (& xs) (if (empty? xs) nil (if (= 1 (count xs)) (first xs) `(let* (or_FIXME \~(first xs)) (if or_FIXME or_FIXME (or \~@(rest xs))))))))"), Env),
+    eval(read("(def! *gensym-counter* (atom 0))"), Env),
+    eval(read("(def! gensym (fn* [] (symbol (str \"G__\" (swap! *gensym-counter* (fn* [x] (+ 1 x)))))))"), Env),
+    eval(read("(defmacro! or (fn* (& xs) (if (empty? xs) nil (if (= 1 (count xs)) (first xs) (let* (condvar (gensym)) `(let* (\~condvar \~(first xs)) (if \~condvar \~condvar (or \~@(rest xs)))))))))"), Env),
     Env.
 
 loop(Env) ->
@@ -30,17 +32,16 @@ loop(Env) ->
         eof -> io:format("~n");
         {error, Reason} -> exit(Reason);
         Line ->
-            rep(string:strip(Line, both, $\n), Env),
+            print(rep(string:strip(Line, both, $\n), Env)),
             loop(Env)
     end.
 
 rep(Input, Env) ->
     try eval(read(Input), Env) of
-        Result -> print(Result)
+        none -> none;
+        Result -> printer:pr_str(Result, true)
     catch
-        error:Reason ->
-            io:format("error: ~s~n", [Reason])
-            % io:format("Backtrace: ~p~n", [erlang:get_stacktrace()])
+        error:Reason -> printer:pr_str({error, Reason}, true)
     end.
 
 read(Input) ->
@@ -54,7 +55,7 @@ eval(Value, Env) ->
         {list, _L1, _M1} ->
             case macroexpand(Value, Env) of
                 {list, _L2, _M2} = List -> eval_list(List, Env);
-                AST -> AST
+                AST -> eval_ast(AST, Env)
             end;
         _ -> eval_ast(Value, Env)
     end.
@@ -172,7 +173,7 @@ print(none) ->
     % if nothing meaningful was entered, print nothing at all
     ok;
 print(Value) ->
-    io:format("~s~n", [printer:pr_str(Value, true)]).
+    io:format("~s~n", [Value]).
 
 let_star(Env, Bindings) ->
     Bind = fun({Name, Expr}) ->

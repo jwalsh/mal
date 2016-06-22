@@ -6,8 +6,9 @@
 
 Mal is a Clojure inspired Lisp interpreter.
 
-Mal is implemented in 43 different languages:
+Mal is implemented in 56 languages:
 
+* Ada
 * GNU awk
 * Bash shell
 * C
@@ -16,7 +17,9 @@ Mal is implemented in 43 different languages:
 * Clojure
 * CoffeeScript
 * Crystal
+* D
 * Elixir
+* Emacs Lisp
 * Erlang
 * ES6 (ECMAScript 6 / ECMAScript 2015)
 * F#
@@ -26,19 +29,27 @@ Mal is implemented in 43 different languages:
 * Groovy
 * GNU Guile
 * Haskell
+* Haxe
+* Io
 * Java
 * JavaScript ([Online Demo](http://kanaka.github.io/mal))
 * Julia
 * Kotlin
+* Logo
 * Lua
 * GNU Make
 * mal itself
 * MATLAB
 * [miniMAL](https://github.com/kanaka/miniMAL)
 * Nim
+* Object Pascal
+* Objective C
 * OCaml
 * Perl
+* Perl 6
 * PHP
+* PL/pgSQL (Postgres)
+* PL/SQL (Oracle)
 * Postscript
 * Python
 * RPython
@@ -48,7 +59,9 @@ Mal is implemented in 43 different languages:
 * Rust
 * Scala
 * Swift
+* Swift 3
 * Tcl
+* VHDL
 * Vimscript
 * Visual Basic.NET
 
@@ -76,8 +89,12 @@ The mal (make a lisp) steps are:
 
 Mal was presented publicly for the first time in a lightning talk at
 Clojure West 2014 (unfortunately there is no video). See
-mal/clojurewest2014.mal for the presentation that was given at the
-conference (yes the presentation is a mal program).
+examples/clojurewest2014.mal for the presentation that was given at the
+conference (yes the presentation is a mal program). At Midwest.io
+2015, Joel Martin gave a presentation on Mal titled "Achievement
+Unlocked: A Better Path to Language Learning".
+[Video](https://www.youtube.com/watch?v=lgyOAiRtZGw),
+[Slides](http://kanaka.github.io/midwest.io.mal/).
 
 If you are interesting in creating a mal implementation (or just
 interested in using mal for something), please drop by the #mal
@@ -86,6 +103,34 @@ guide](process/guide.md) there is also a [mal/make-a-lisp
 FAQ](docs/FAQ.md) where I attempt to answer some common questions.
 
 ## Building/running implementations
+
+The simplest way to run any given implementation is to use docker.
+Every implementation has a docker image pre-built with language
+dependencies installed. You can launch the REPL using a convenience
+target in the top level Makefile (where IMPL is the implementation
+directory name and stepX is the step to run):
+
+```
+make DOCKERIZE=1 "repl^IMPL^stepX"
+    # OR stepA is the default step:
+make DOCKERIZE=1 "repl^IMPL"
+```
+
+
+### Ada
+
+*The Ada implementation was created by [Chris Moore](https://github.com/zmower)*
+
+The Ada implementation was developed with GNAT 4.9 on debian. It also
+compiles unchanged on windows if you have windows versions of git,
+GNAT and (optionally) make.  There are no external dependencies
+(readline not implemented).
+
+```
+cd ada
+make
+./stepX_YYY
+```
 
 ### GNU awk
 
@@ -108,7 +153,8 @@ bash stepX_YYY.sh
 ### C
 
 The C implementation of mal requires the following libraries (lib and
-header packages): glib, libffi6 and either the libedit or GNU readline library.
+header packages): glib, libffi6, libgc, and either the libedit or GNU readline
+library.
 
 ```
 cd c
@@ -148,6 +194,9 @@ mono ./stepX_YYY.exe
 
 ### Clojure
 
+For the most part the Clojure implementation requires Clojure 1.5,
+however, to pass all tests, Clojure 1.8.0-RC4 is required.
+
 ```
 cd clojure
 lein with-profile +stepX trampoline run
@@ -165,7 +214,7 @@ coffee ./stepX_YYY
 
 *The Crystal implementation of mal was created by [Linda_pp](https://github.com/rhysd)*
 
-The Crystal implementation of mal has been tested with Crystal 0.8.0.
+The Crystal implementation of mal has been tested with Crystal 0.17.4.
 
 ```
 cd crystal
@@ -173,6 +222,35 @@ crystal run ./stepX_YYY.cr
     # OR
 make   # needed to run tests
 ./stepX_YYY
+```
+
+### D
+
+*The D implementation was created by [Dov Murik](https://github.com/dubek)*
+
+The D implementation of mal was tested with GDC 4.8.  It requires the GNU
+readline library.
+
+```
+cd d
+make
+./stepX_YYY
+```
+
+### Emacs Lisp
+
+*The Emacs Lisp implementation was created by [Vasilij Schneidermann](https://github.com/wasamasa)*
+
+The Emacs Lisp implementation of mal has been tested with Emacs 24.3
+and 24.5.  While there is very basic readline editing (`<backspace>`
+and `C-d` work, `C-c` cancels the process), it is recommended to use
+`rlwrap`.
+
+```
+cd elisp
+emacs -Q --batch --load stepX_YYY.el
+# with full readline support
+rlwrap emacs -Q --batch --load stepX_YYY.el
 ```
 
 ### Elixir
@@ -236,7 +314,7 @@ mono ./stepX_YYY.exe
 *The Factor implementation was created by [Jordan Lewis (jordanlewis)](https://github.com/jordanlewis)*
 
 The Factor implementation of mal has been tested with Factor 0.97
-([factorcode.org](factorcode.org)).
+([factorcode.org](http://factorcode.org)).
 
 ```
 cd factor
@@ -297,6 +375,38 @@ make
 ./stepX_YYY
 ```
 
+### Haxe
+
+The Haxe implementation of mal requires Haxe version 3.2 to compile.
+Four different Haxe targets are supported: Neko, Python, C++, and
+JavaScript.
+
+```
+cd haxe
+# Neko
+make all-neko
+neko ./stepX_YYY.n
+# Python
+make all-python
+python3 ./stepX_YYY.py
+# C++
+make all-cpp
+./cpp/stepX_YYY
+# JavaScript
+make all-js
+node ./stepX_YYY.js
+```
+
+### Io
+
+*The Io implementation was created by [Dov Murik](https://github.com/dubek)*
+
+The Io implementation of mal has been tested with Io version 20110905.
+
+```
+cd io
+io ./stepX_YYY.io
+```
 
 ### Java 1.7
 
@@ -331,12 +441,23 @@ julia stepX_YYY.jl
 
 *The Kotlin implementation was created by [Javier Fernandez-Ivern](https://github.com/ivern)*
 
-The Kotlin implementation of mal has been tested with Kotlin 1.0.0-beta.
+The Kotlin implementation of mal has been tested with Kotlin 1.0.
 
 ```
 cd kotlin
 make
 java -jar stepX_YYY.jar
+```
+
+### Logo
+
+*The Logo implementation was created by [Dov Murik](https://github.com/dubek)*
+
+The Logo implementation of mal has been tested with UCBLogo 6.0.
+
+```
+cd logo
+logo stepX_YYY.lg
 ```
 
 ### Lua
@@ -380,6 +501,29 @@ cd nim
 make
   # OR
 nimble build
+./stepX_YYY
+```
+
+### Object Pascal
+
+The Object Pascal implementation of mal has been built and tested on
+Linux using the Free Pascal compiler version 2.6.2 and 2.6.4.
+
+```
+cd objpascal
+make
+./stepX_YYY
+```
+
+### Objective C
+
+The Objective C implementation of mal has been built and tested on
+Linux using clang/LLVM 3.6. It has also been built and tested on OS
+X using XCode 7.
+
+```
+cd objc
+make
 ./stepX_YYY
 ```
 
@@ -433,6 +577,16 @@ cd perl
 perl stepX_YYY.pl
 ```
 
+### Perl 6
+
+*The Perl 6 implementation was created by [Hinrik Örn Sigurðsson](https://github.com/hinrik)*
+
+The Perl 6 implementation was tested on Rakudo Perl 6 2016.04.
+
+```
+cd perl6
+perl6 stepX_YYY.pl
+```
 
 ### PHP 5.3
 
@@ -452,6 +606,45 @@ has been tested with ghostscript 9.10.
 ```
 cd ps
 gs -q -dNODISPLAY -I./ stepX_YYY.ps
+```
+
+### PL/pgSQL (Postgres SQL Procedural Language)
+
+The PL/pgSQL implementation of mal requires a running Postgres server
+(the "kanaka/mal-test-plpgsql" docker image automatically starts
+a Postgres server). The implementation connects to the Postgres server
+and create a database named "mal" to store tables and stored
+procedures. The wrapper script uses the psql command to connect to the
+server and defaults to the user "postgres" but this can be overridden
+with the PSQL_USER environment variable. A password can be specified
+using the PGPASSWORD environment variable. The implementation has been
+tested with Postgres 9.4.
+
+```
+cd plpgsql
+./wrap.sh stepX_YYY.sql
+    # OR
+PSQL_USER=myuser PGPASSWORD=mypass ./wrap.sh stepX_YYY.sql
+```
+
+### PL/SQL (Oracle SQL Procedural Language)
+
+The PL/pgSQL implementation of mal requires a running Oracle DB
+server (the "kanaka/mal-test-plsql" docker image automatically
+starts an Oracle Express server). The implementation connects to the
+Oracle server to create types, tables and stored procedures. The
+default SQL*Plus logon value (username/password@connect_identifier) is
+"system/oracle" but this can be overridden with the ORACLE_LOGON
+environment variable. The implementation has been tested with Oracle
+Express Edition 11g Release 2. Note that any SQL*Plus connection
+warnings (user password expiration, etc) will interfere with the
+ability of the wrapper script to communicate with the DB.
+
+```
+cd plsql
+./wrap.sh stepX_YYY.sql
+    # OR
+ORACLE_LOGON=myuser/mypass@ORCL ./wrap.sh stepX_YYY.sql
 ```
 
 ### Python (2.X or 3.X)
@@ -535,6 +728,18 @@ make
 ./stepX_YYY
 ```
 
+### Swift 3
+
+The Swift 3 implementation of mal requires the Swift 3.0 compiler. It
+has been tested with the development version of the Swift 3 from
+2016-02-08.
+
+```
+cd swift3
+make
+./stepX_YYY
+```
+
 ### Tcl 8.6
 
 *The Tcl implementation was created by [Dov Murik](https://github.com/dubek)*
@@ -545,6 +750,18 @@ editing support, install tclreadline.
 ```
 cd tcl
 tclsh ./stepX_YYY.tcl
+```
+
+### VHDL
+
+*The VHDL implementation was created by [Dov Murik](https://github.com/dubek)*
+
+The VHDL implementation of mal has been tested with GHDL 0.29.
+
+```
+cd vhdl
+make
+./run_vhdl.sh ./stepX_YYY
 ```
 
 ### Vimscript
@@ -577,7 +794,7 @@ mono ./stepX_YYY.exe
 
 ### Functional tests
 
-The are nearly 500 generic functional tests (for all implementations)
+The are over 600 generic functional tests (for all implementations)
 in the `tests/` directory. Each step has a corresponding test file
 containing tests specific to that step. The `runtest.py` test harness
 launches a Mal step implementation and then feeds the tests one at
@@ -596,31 +813,31 @@ make test
 * To run all tests against a single implementation:
 
 ```
-make test^IMPL
+make "test^IMPL"
 
 # e.g.
-make test^clojure
-make test^js
+make "test^clojure"
+make "test^js"
 ```
 
 * To run tests for a single step against all implementations:
 
 ```
-make test^stepX
+make "test^stepX"
 
 # e.g.
-make test^step2
-make test^step7
+make "test^step2"
+make "test^step7"
 ```
 
 * To run tests for a specific step against a single implementation:
 
 ```
-make test^IMPL^stepX
+make "test^IMPL^stepX"
 
 # e.g
-make test^ruby^step3
-make test^ps^step4
+make "test^ruby^step3"
+make "test^ps^step4"
 ```
 
 ### Self-hosted functional tests
@@ -629,14 +846,47 @@ make test^ps^step4
   as the test implementation and use the `MAL_IMPL` make variable
   to change the underlying host language (default is JavaScript):
 ```
-make MAL_IMPL=IMPL test^mal^step2
+make MAL_IMPL=IMPL "test^mal^step2"
 
 # e.g.
-make test^mal^step2   # js is default
-make MAL_IMPL=ruby test^mal^step2
-make MAL_IMPL=python test^mal^step2
+make "test^mal^step2"   # js is default
+make MAL_IMPL=ruby "test^mal^step2"
+make MAL_IMPL=python "test^mal^step2"
 ```
 
+### Starting the REPL
+
+* To start the REPL of an implementation in a specific step:
+
+```
+make "repl^IMPL^stepX"
+
+# e.g
+make "repl^ruby^step3"
+make "repl^ps^step4"
+```
+
+* If you omit the step, then `stepA` is used:
+
+```
+make "repl^IMPL"
+
+# e.g
+make "repl^ruby"
+make "repl^ps"
+```
+
+* To start the REPL of the self-hosted implementation, specify `mal` as the
+  REPL implementation and use the `MAL_IMPL` make variable to change the
+  underlying host language (default is JavaScript):
+```
+make MAL_IMPL=IMPL "repl^mal^stepX"
+
+# e.g.
+make "repl^mal^step2"   # js is default
+make MAL_IMPL=ruby "repl^mal^step2"
+make MAL_IMPL=python "repl^mal"
+```
 
 ### Performance tests
 
@@ -648,73 +898,67 @@ that I'm willing to sell you for cheap.
 
 * To run performance tests against a single implementation:
 ```
-make perf^IMPL
+make "perf^IMPL"
 
 # e.g.
-make perf^js
+make "perf^js"
 ```
 
 * To run performance tests against all implementations:
 ```
-make perf
+make "perf"
 ```
 
 ### Generating language statistics
 
 * To report line and byte statistics for a single implementation:
 ```
-make stats^IMPL
+make "stats^IMPL"
 
 # e.g.
-make stats^js
+make "stats^js"
 ```
 
 * To report line and bytes statistics for general Lisp code (env, core
   and stepA):
 ```
-make stats-lisp^IMPL
+make "stats-lisp^IMPL"
 
 # e.g.
-make stats-lisp^js
+make "stats-lisp^js"
 ```
 
-## Docker test environment
+## Dockerized testing
 
-There is a Dockerfile included in the `tests/docker` directory that
-builds a docker image based on Ubuntu Utopic that contains everything
-needed to run tests against all the implementations (except for MATLAB
-which is proprietary/licensed).
+Every implementation directory contains a Dockerfile to create
+a docker image containing all the dependencies for that
+implementation. In addition, the top-level Makefile contains support
+for running the tests target (and perf, stats, repl, etc) within
+a docker container for that implementation by passing *"DOCKERIZE=1"*
+on the make command line. For example:
 
-Build the docker image using a provided script. WARNING: this will
-likely take over an hour to build from scratch and use more 3 GB of disk:
-```bash
-./tests/docker-build.sh
+```
+make DOCKERIZE=1 "test^js^step3"
 ```
 
-Launch a docker container from that image built above. This will
-volume mount the mal directory to `/mal` and then give you a bash
-prompt in the container. You can then run individual mal
-implementations and tests:
-```bash
-./tests/docker-run.sh
+Existing implementations already have docker images built and pushed
+to the docker registry. However, if
+you wish to build or rebuild a docker image locally, the toplevel
+Makefile provides a rule for building docker images:
+
+```
+make "docker-build^IMPL"
 ```
 
-You can also specify a command to run within the container. For
-example, to run step2 tests for every implementation (except MATLAB):
-```bash
-./tests/docker-run.sh make SKIP_IMPLS="matlab" test^step2
-```
 
 **Notes**:
-* JVM-based language implementations (Java, Clojure, Scala): you will
-  need to run these implementations once manually first before you can
-  run tests because runtime dependencies need to be downloaded to
-  avoid the tests timing out. These dependencies are download to
-  dot-files in the /mal directory so they will persist between runs.
-* Compiled languages: if your host system is different enough from
-  Ubuntu Utopic then you may need to re-compile your compiled
-  languages from within the container to avoid linker version
-  mismatches.
+* Docker images are named *"kanaka/mal-test-IMPL"*
+* JVM-based language implementations (Groovy, Java, Clojure, Scala):
+  you will probably need to run these implementations once manually
+  first (make DOCKERIZE=1 "repl^IMPL")before you can run tests because
+  runtime dependencies need to be downloaded to avoid the tests timing
+  out. These dependencies are download to dot-files in the /mal
+  directory so they will persist between runs.
 
 
 ## License

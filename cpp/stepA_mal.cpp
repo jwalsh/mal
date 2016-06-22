@@ -12,18 +12,19 @@ String PRINT(malValuePtr ast);
 static void installFunctions(malEnvPtr env);
 
 static void makeArgv(malEnvPtr env, int argc, char* argv[]);
-static void safeRep(const String& input, malEnvPtr env);
+static String safeRep(const String& input, malEnvPtr env);
 static malValuePtr quasiquote(malValuePtr obj);
 static malValuePtr macroExpand(malValuePtr obj, malEnvPtr env);
 static void installMacros(malEnvPtr env);
 
 static ReadLine s_readLine("~/.mal-history");
 
+static malEnvPtr replEnv(new malEnv);
+
 int main(int argc, char* argv[])
 {
     String prompt = "user> ";
     String input;
-    malEnvPtr replEnv(new malEnv);
     installCore(replEnv);
     installFunctions(replEnv);
     installMacros(replEnv);
@@ -33,25 +34,26 @@ int main(int argc, char* argv[])
         safeRep(STRF("(load-file %s)", filename.c_str()), replEnv);
         return 0;
     }
+    rep("(println (str \"Mal [\" *host-language* \"]\"))", replEnv);
     while (s_readLine.get(prompt, input)) {
-        safeRep(input, replEnv);
+        String out = safeRep(input, replEnv);
+        if (out.length() > 0)
+            std::cout << out << "\n";
     }
     return 0;
 }
 
-static void safeRep(const String& input, malEnvPtr env)
+static String safeRep(const String& input, malEnvPtr env)
 {
-    String out;
     try {
-        out = rep(input, env);
+        return rep(input, env);
     }
     catch (malEmptyInputException&) {
-        return;
+        return String();
     }
     catch (String& s) {
-        out = s;
+        return s;
     };
-    std::cout << out << "\n";
 }
 
 static void makeArgv(malEnvPtr env, int argc, char* argv[])
@@ -75,6 +77,9 @@ malValuePtr READ(const String& input)
 
 malValuePtr EVAL(malValuePtr ast, malEnvPtr env)
 {
+    if (!env) {
+        env = replEnv;
+    }
     while (1) {
         const malList* list = DYNAMIC_CAST(malList, ast);
         if (!list || (list->count() == 0)) {
@@ -227,7 +232,7 @@ malValuePtr EVAL(malValuePtr ast, malEnvPtr env)
             continue; // TCO
         }
         else {
-            return APPLY(op, items->begin()+1, items->end(), env);
+            return APPLY(op, items->begin()+1, items->end());
         }
     }
 }
@@ -237,14 +242,13 @@ String PRINT(malValuePtr ast)
     return ast->print(true);
 }
 
-malValuePtr APPLY(malValuePtr op, malValueIter argsBegin, malValueIter argsEnd,
-                  malEnvPtr env)
+malValuePtr APPLY(malValuePtr op, malValueIter argsBegin, malValueIter argsEnd)
 {
     const malApplicable* handler = DYNAMIC_CAST(malApplicable, op);
     MAL_CHECK(handler != NULL,
               "\"%s\" is not applicable", op->print(true).c_str());
 
-    return handler->apply(argsBegin, argsEnd, env);
+    return handler->apply(argsBegin, argsEnd);
 }
 
 static bool isSymbol(malValuePtr obj, const String& text)
@@ -312,14 +316,14 @@ static malValuePtr macroExpand(malValuePtr obj, malEnvPtr env)
 {
     while (const malLambda* macro = isMacroApplication(obj, env)) {
         const malSequence* seq = STATIC_CAST(malSequence, obj);
-        obj = macro->apply(seq->begin() + 1, seq->end(), env);
+        obj = macro->apply(seq->begin() + 1, seq->end());
     }
     return obj;
 }
 
 static const char* macroTable[] = {
     "(defmacro! cond (fn* (& xs) (if (> (count xs) 0) (list 'if (first xs) (if (> (count xs) 1) (nth xs 1) (throw \"odd number of forms to cond\")) (cons 'cond (rest (rest xs)))))))",
-    "(defmacro! or (fn* (& xs) (if (empty? xs) nil (if (= 1 (count xs)) (first xs) `(let* (or_FIXME ~(first xs)) (if or_FIXME or_FIXME (or ~@(rest xs))))))))",
+    "(defmacro! or (fn* (& xs) (if (empty? xs) nil (if (= 1 (count xs)) (first xs) (let* (condvar (gensym)) `(let* (~condvar ~(first xs)) (if ~condvar ~condvar (or ~@(rest xs)))))))))",
 };
 
 static void installMacros(malEnvPtr env)
@@ -348,8 +352,9 @@ static const char* malFunctionTable[] = {
         (eval (read-string (str \"(do \" (slurp filename) \")\")))))",
     "(def! map (fn* (f xs) (if (empty? xs) xs \
         (cons (f (first xs)) (map f (rest xs))))))",
-    "(def! swap! (fn* (atom f & args) (reset! atom (apply f @atom args))))",
-    "(def! *host-language* \"c++\")",
+    "(def! *gensym-counter* (atom 0))",
+    "(def! gensym (fn* [] (symbol (str \"G__\" (swap! *gensym-counter* (fn* [x] (+ 1 x)))))))",
+    "(def! *host-language* \"C++\")",
 };
 
 static void installFunctions(malEnvPtr env) {

@@ -17,7 +17,8 @@ pair_Q = { ast -> types.sequential_Q(ast) && ast.size() > 0}
 quasiquote = { ast ->
     if (! pair_Q(ast)) {
         [new MalSymbol("quote"), ast]
-    } else if (ast[0].class == MalSymbol &&
+    } else if (ast[0] != null &&
+               ast[0].class == MalSymbol &&
                ast[0].value == "unquote") {
         ast[1]
     } else if (pair_Q(ast[0]) && ast[0][0].class == MalSymbol && 
@@ -47,6 +48,7 @@ EVAL = { ast, env ->
   while (true) {
     //println("EVAL: ${printer.pr_str(ast,true)}")
     if (! types.list_Q(ast)) return eval_ast(ast, env)
+    if (ast.size() == 0) return ast
 
     switch (ast[0]) {
     case { it instanceof MalSymbol && it.value == "def!" }:
